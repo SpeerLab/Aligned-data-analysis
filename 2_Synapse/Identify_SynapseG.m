@@ -20,7 +20,8 @@ maskfiles = [dir([mask_folder '*.tif']) dir([mask_folder '*.png'])];
 voxel=[15.5, 15.5, 70];
 outpath = [exp_folder 'Result\'];
 
-%
+%%
+%Read the conventional images. 
 clear BG
 disp('allocating arrays')
 BG = zeros(info.Height, info.Width, num_images,'uint8');
@@ -33,14 +34,13 @@ end
 % bad_sec = [4,17];
 % BG(:,:,bad_sec) = [];
 num_images_2 = size(BG,3);
-%
-%Soma filter not used now. 
+%%
+%Apply the soma filter to the images.
 parfor k =1:num_images_2
     M = imread([mask_folder maskfiles(k,1).name]);
     Mask(:,:,k) = M(:,:);
 end
 %
-
 I = zeros(size(BG),'uint8');
 Mask = logical(Mask);
 for i = 1:num_images_2
@@ -48,6 +48,8 @@ for i = 1:num_images_2
 %     Masked_out(:,:,i) = BG(:,:,i).*uint8(Mask(:,:,i));
 end
 %%
+%Adaptive thresholding to the conventional images. Get conventional filters. 
+%(Here conventional images are used as a preliminary filter to the STORM images)
 DYs = false(size(BG));
 sen = 0.5 ;
 parfor i = 1:num_images_2
@@ -57,6 +59,7 @@ end
 imwrite(uint8(DYs(:,:,1)).*BG(:,:,1),[outpath 'Gconv_filter_' sprintf('%03d',1) '.tif']);
 
 %%
+%Read STORM images, apply the conventional filter. 
 S = zeros(info.Height, info.Width, num_images,'uint8');
 disp('loading data')
 parfor k = 1:num_images
@@ -71,7 +74,8 @@ for i = 1:num_images_2
 end
 %
 
-%
+%%
+%Gaussian blur. 
 gauss  = 5;
 gausspix = (gauss);
 sigmaZ = gausspix* voxel(1)/voxel(3);
@@ -89,7 +93,8 @@ parfor k=1:num_images_2
 end
 
 S2 = imfilter(S2,Hz,'same','replicate');
-%
+%%
+%Calculate the histogram and autothresholding. 
 clear hy1
 parfor j=1:num_images_2
     disp(j)
@@ -117,6 +122,7 @@ t_use = threshfactorg(2)/256 %#ok<NOPTS>
 
 
 %%
+%Thresholding. Write a test image to check the thresholding result. 
 % t_use = 0.025
 % t_use = 0.0901
 
@@ -130,7 +136,7 @@ end
 imwrite(uint8(CG(:,:,1)).*S1(:,:,1),[outpath 'Storm_Thre_G' sprintf('%03d',1) '.tif']);
 % end
 %%
-%
+%Find the connected components. 
 %clear bg2
 disp('making CCG')
 CCG = bwconncomp(CG,26); 
@@ -143,7 +149,8 @@ statsGgauss = regionprops(CCG,S2,'Area','PixelIdxList','PixelValues','PixelList'
 %
 statsG_backup = statsG;
 statsGgauss_backup = statsGgauss;
-%
+%%
+%These are 3D images and a functional synapse should be continuous across at least 2 sections. 
 lenz = zeros(numel(statsG),1);
 for i = 1:numel(statsG)
     if statsG(i).Area > 4
@@ -158,7 +165,9 @@ lenz = (lenz > 1);
 statsG = statsG(lenz);
 statsGgauss = statsGgauss(lenz);
 rate = numel(statsGgauss) / numel(statsGgauss_backup)
+
 %%
+%For each connected object (cluster), do a watershedding if necessary
 sizeBG = size(BG);
 clear CG CCG
 clear statsG2a
@@ -180,7 +189,7 @@ for j=1: numel(statsGgauss(jj).PixelList(:,1))
        statsGgauss(jj).PixelList(j,3)-minpix(3)+1+1)=statsGgauss(jj).PixelValues(j,1); 
 end
 I2 = imcomplement(curr2b);
-%No watersher shedding for now. 
+%When using 255, no watersher shedding is applied. Use other values (such as 10) will further segment the clusters in case several synapses are connected. 
 I3 = imhmin(I2,255);
 L = watershed(I3);
 %clear currstat sizes
@@ -229,12 +238,14 @@ end
 statsG2a2 = cat(1,statsG2a2, templist);
 statsGwater = statsG2a2;
 numel(statsGwater)/numel(statsG)
-%
+%%
+%A simple size threshold to exclude small clusters. 
 areacutoff = 4 ;
 statsGwater = statsGwater([statsGwater.Area]>areacutoff);
 %
 % statsGwater = statsG;
-
+%%
+%Calculate properties for each synaptic clusters. 
 for i=1:numel(statsGwater)
     disp(i)
     statsGwater(i,1).PixelValues = S1(statsGwater(i,1).PixelIdxList);
@@ -312,11 +323,12 @@ voxel = [15.5 15.5 70];
 for jj =1:numel(statsGwater)   
     centGw(jj,:) = statsGwater(jj,1).WeightedCentroid;
 end
-
+%%
+%Save the results
 % save([outpath 'sizeshapematG_and_cent_water10_area_cutoff.mat'],'centGw','sizeshape_mat')
 % save([outpath 'statsGwater10_area_cutoff.mat'],'statsGwater','-v7.3')
-%
-%Delete clusters on the edge. 
+%%
+%Delete clusters on the edge of the image stack. 
 No = [];
 for i = 1:numel(statsGwater)
     minpix = min(statsGwater(i).PixelIdxList);
@@ -329,7 +341,8 @@ statsGwater(No) = [];
 centGw(No,:) = [];
 sizeshape_mat(No,:) = [];
 
-%
+%%
+%Prepare a 2D heatmap (cluster size vs. signal dnesity) for synaptic cluster selection
 centG = centGw;
 sizeshape_matG = sizeshape_mat;
 
@@ -364,6 +377,7 @@ pcolor(X,Y,H2)
 savefig([outpath 'Gsizeshape_heatmap.fig'])
 
 %%
+%Plot the 2D heatmap and do a manual selection. 
 figure;
 pcolor(X,Y,H2)
 % manually draw polygon on figure
@@ -402,7 +416,8 @@ statsGa2ns=statsGwater(find(~inpolygon(val1w,val2w,synapse_regiong(:,1),...
 
 size(centGa2s,1)
 
-%
+%%
+%Another threshold and save the output files. 
 Real_non_select_area_thre = 4;
 centGa2ns = centGa2ns(sizeshape_matGa2ns(:,19)>Real_non_select_area_thre,:);
 rcentGa2ns = rcentGa2ns(sizeshape_matGa2ns(:,19)>Real_non_select_area_thre,:);
