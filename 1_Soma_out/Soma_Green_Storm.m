@@ -1,5 +1,6 @@
 clear;clc;
-%
+%%
+%Specify the directory
 exp_folder = 'X:\Chenghang\OPN4_SCN\OPN4_SCN_Het_P60_A\analysis\';
 %Box_thick is used to calculate the boundary of the image block. 
 %Dis_thick is used to expand the identified soma area. 
@@ -11,7 +12,6 @@ Dis_thick = 40;
 channel = 2;
 gauss_id = 3;
 
-%
 path = [exp_folder  'elastic_align/'];
 
 stormpath = [path 'storm_merged/'];
@@ -21,19 +21,21 @@ infos = imfinfo([stormpath stormfiles(1,1).name]);
 
 convpath = [path 'conv_merged\'];
 convfiles = [dir([convpath '*.tif']) dir([convpath '*.png'])];
-
+%%
+%Make some output directories. 
 mkdir([exp_folder 'Result']);
 mkdir([exp_folder 'Result\1_soma']);
 mkdir([exp_folder 'Result\0_BD'])
 outpath = [exp_folder 'Result\1_Soma\'];
 voxels=[(15.5), (15.5), 70];
 
+%%
+%Read the conventional images. Calculate the boundary of the image. 
 BYs = zeros(ceil((infos(1,1).Height)),ceil((infos(1,1).Width)),num_images,'uint8');
 BD = zeros(ceil((infos(1,1).Height)),ceil((infos(1,1).Width)),num_images,'uint8');
 Area = zeros(num_images,1);
 Area2 = zeros(num_images,1);
-%
-%Calculate the boundary of the image. 
+
 parfor k = 1:num_images
     disp(k)
     A = imread([convpath convfiles(k,1).name]);
@@ -62,7 +64,8 @@ parfor k = 1:num_images
     end
     BD(:,:,k) = D;
 end
-%
+%%
+%Find the blank edges. 
 outlier = zeros(ceil((infos(1,1).Height)),ceil((infos(1,1).Width)),num_images,'uint8');
 A2 = zeros(ceil((infos(1,1).Height)),ceil((infos(1,1).Width)),num_images,'uint8');
 for i = 1:size(BD,3)
@@ -71,7 +74,9 @@ for i = 1:size(BD,3)
     DD = imcomplement(CD);
     outlier(:,:,i) = DD;
 end
-%
+
+%%
+%Read the super-resolution images. 
 parfor k = 1:num_images
     A = imread([stormpath stormfiles(k,1).name]);
     BYs(:,:,k) = A(:,:,channel);
@@ -80,7 +85,9 @@ end
 % bad_sec = [2];
 % BYs(:,:,bad_sec) = [];
 num_images_2 = size(BYs,3);
-%
+
+%%
+%Gaussian blur
 gausspix = (gauss_id);
 
 bg2 = zeros(size(BYs),'uint8');
@@ -90,6 +97,7 @@ parfor k=1:num_images_2
 end
 
 %%
+%Find the histogram and decide a threshold
 clear hy1
 parfor j=1:num_images_2
     disp(j)
@@ -115,9 +123,12 @@ end
 threshfactorg = double(multithresh(hy1dist,3));
 t_use = threshfactorg(1)/256 %#ok<NOPTS> 
 %%
+%Normally the threshold is around 0.1. If the non-specific staining in soma is not obvious, we can skip the filter by using t_use =1. 
 %0.07
-t_use = 1;
-%
+%t_use = 1;
+
+%%
+%Threshodling. 
 disp('making CG')
 CG = false(size(bg2));
 parfor k=1:size(bg2,3)
@@ -125,22 +136,26 @@ parfor k=1:size(bg2,3)
 end
 % imwrite(double(CG(:,:,1)),[outpath 'mask' '.tif']);
 %
-%
+%%
+%Find the connected components. 
 disp('making CCG')
 CCG = bwconncomp(CG,26); 
 %clear CG
 disp('making statsG')
-
+%Find parameters for the connected objects. 
 statsG = regionprops(CCG,BYs,'Area','PixelIdxList','PixelValues','PixelList','WeightedCentroid');
 statsGgauss = regionprops(CCG,bg2,'Area','PixelIdxList','PixelValues','PixelList','WeightedCentroid');
 
-%
+%%
+%A manuel threshold the soma (11.5)
 new_G = zeros(ceil((infos(1,1).Height)),ceil((infos(1,1).Width)),num_images,'uint8');
 %
 % the size threshold here might need modification. 
 statsG_temp = statsGgauss(find(log(1+[statsGgauss.Area])> 11.5));
 numel(statsG_temp)
-%
+%%
+%Write an example image and check how the filter work. 
+%Note: The test image needs to be deleted afterwards. 
 for i = 1:size(statsG_temp,1)
 % for i = 1:10
     disp(i)
@@ -159,6 +174,7 @@ end
 imwrite(new_G(:,:,1) * 255,[outpath 'Soma_test_1.tif']);
 
 %%
+%Process of soma objects. 
 new_G = logical(new_G);
 
 F = zeros(ceil((infos(1,1).Height)),ceil((infos(1,1).Width)),num_images,'uint8');
@@ -169,7 +185,7 @@ parfor i = 1:num_images
     Dg = bwdistsc(new_G(:,:,i));
     curr = Dg<=(size2);
     Temp_BD = logical(BD(:,:,i));
-    %Note: 200 is an artifical number here. Soma on the edge at x=200 won't
+    %Note: 200/2500/600/3000 is an artifical number here. Soma on the edge at x=200 won't
     %be filled. 
     Temp_BD(1:infos.Height,200) = 0;
     Temp_BD(2500,1:infos.Width) = 0;
@@ -186,8 +202,8 @@ end
 for i = 1:size(A2,3)
     Area2(i) = numel(find(A2(:,:,i)));
 end
-
-%
+%%
+%Save. 
 for i = 1:num_images_2
     imwrite(double(F(:,:,i)),[outpath 'F_' sprintf('%03d',i) '.tif']);
     imwrite(double(A2(:,:,i)),[exp_folder 'Result/0_BD/' 'A2_' sprintf('%03d',i) '.tif']);
