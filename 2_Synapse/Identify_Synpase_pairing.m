@@ -4,7 +4,7 @@ base_folder = [exp_folder '\analysis\Result\'];
 
 outpath = base_folder;
 
-%
+%Load needed data
 load([base_folder 'statslistR2sw10.mat']);
 load([base_folder 'statslistR2nsw10.mat']);
 %
@@ -78,7 +78,8 @@ nn_Rns_Gs = zeros(size(centRns,1),1);
 %nn_Prand_Gall = zeros(size(centP_all,1),1);
 %nn_Ps_Gall = zeros(size(centPs,1),1);
 %nn_Pns_Gall = zeros(size(centPns,1),1);
-%
+%%
+%Calculate the cluster distances
 disp('startG1')
 parfor i=1:size(centG_all,1)
 nn_Gall_Rs(i) = min(pdist2(centG_all(i,:),centRs));
@@ -119,6 +120,7 @@ end
 % 
 save([base_folder 'nearest_neightbor_pairing_gw10pw10.mat'],'nn_*')
 %%
+%Plot the distances. 
 binsl = 0:0.05:5;
 [hy1, hx2] = hist(log10(nn_Gall_Rs),binsl);
 [hy2, hx2] = hist(log10(nn_Gs_Rs),binsl);
@@ -270,6 +272,7 @@ savefig([base_folder 'nnRsplit_Gs_counts_with_rand_and_all.fig'])
 % [FitResultsG,LowestError]=peakfit([hx2' (hy5)'],center,window,NumPeaks,PeakShape,extra,NumTrials,startvector); 
 
 %%
+%Get 2D histogram (nearest cluster distance vs. signals in the shell)
 load([base_folder 'add_to_statsGw10_edges.mat'],'tintsG_p140');
 mints_g70s = (([tintsG_p140])./[volumeGs]');
 %
@@ -288,7 +291,8 @@ H1 = H; H1(H1>cutoffg)=cutoffg;
 figure; 
 pcolor(X,Y,H1)
 
-%
+%%
+%Use OPTICS algorithm to find the two populations in the histogram. 
 k=200;
 dataall = (cat(2,val1w,val2w));
 datause = dataall(randi(numel(dataall(:,1)),[5000 1]),:);
@@ -327,6 +331,7 @@ set(h2,'Color','r','LineWidth',2)
 savefig([base_folder 'storm_gs_ps_mints_nn_shell_2d_hist.fig'])
 
 %%
+%Draw a line to split the two populations. 
 pairedg_idx = -((L(1)/L(2))*val1w + K/L(2)) > val2w;
 numel(find(pairedg_idx))/numel((pairedg_idx))
 % pairedp_idx = -((L2(1)/L2(2))*val5w + K2/L2(2))>val6w;
@@ -335,7 +340,8 @@ numel(find(pairedg_idx))/numel((pairedg_idx))
 save([base_folder 'pairing_index_ps_gs_withedges.mat'],'pairedg_idx')
 % save([base_folder 'wga_normalization_pixels_withedges.mat'],'CW2')
 
-%
+%%
+%Similar as above but processing another channel. 
 load([outpath 'statsG2w10_edges_plus.mat']);
 statsGwater_ss = statsGwater(pairedg_idx);
 statsGwater_sn = statsGwater(~pairedg_idx);
