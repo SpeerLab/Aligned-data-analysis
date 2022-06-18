@@ -1,11 +1,7 @@
 %add_to_statsG
-%add statxture and pixellist_140 and opposing channel volume, tints, and 
-%weighted centroid to statslist
-%load in statslist and opposing channel image
-%cluster_seg_whole
 %%
 clear all;clc
-%
+%Note: this code find red signals around green clusters. 
 base_path = 'X:\Chenghang\OPN4_SCN\OPN4_SCN_Het_P60_A\';
 exp_folder = [base_path 'analysis\'];
 path = [exp_folder  'elastic_align\'];
@@ -19,7 +15,8 @@ disp(num_images)
 voxel=[15.5, 15.5, 70];
 
 outpath = [exp_folder 'Result\'];
-%
+%%
+%Load saved data
 load([outpath 'statsR2sw10.mat']);
 statsRwater = statsGa2s;
 clear statsGwater
@@ -27,7 +24,8 @@ clear statsGwater
 clear statsGa2s statsGwater
 load([outpath 'statsG2sw10.mat']);
 statsGwater = statsGa2s;
-%
+%%
+%Load the data into variables BP and BP2. 
 % num_images = num_images - 2;
 clear BP BG bg2
 disp('allocating arrays')
@@ -43,13 +41,10 @@ for i = 1:numel(statsRwater)
     disp(int2str(i))
     BP2(statsRwater(i).PixelIdxList)=statsRwater(i).PixelValues;
 end
-%
+%%
+%Prepare some empty variables
 disp('loading data')
-%
-%if not present, load in stats list
 
-%make categories for new variables in parfor loop and slice BP for use in
-%parfor loop
 for i=numel(statsGwater):-1:1
     disp(i)
     
@@ -83,6 +78,8 @@ statxture_pos(i,1:6) = 0;
 end
 %
 
+%%
+%Calculate signal intensity of antoher channel in 140nm shell. 
 parfor jj=1:numel(statsGwater)
    %
    disp(jj)
@@ -145,7 +142,8 @@ parfor jj=1:numel(statsGwater)
 %    statxture_all(jj,:) = statsGwater(jj).statxture_all;  
 %    statxture_pos(jj,:) = statsGwater(jj).statxture_pos;
 end
-%
+%%
+%Save the output. 
 save([outpath 'add_to_statsGw10_edges.mat'],'centG_p140','tintsG_p140',...)
     'volumeG_p140','statxture_all','statxture_pos','-v7.3')
 save([outpath 'statsG2w10_edges_plus.mat'],'statsGwater','-v7.3')
