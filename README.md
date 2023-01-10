@@ -15,4 +15,7 @@ Run 'Add_to.m' and 'Large_Cluster.m' to get rid of large unspecific labeling.
 The files here are similar to '2_Synapse', it pair clusters in the red channel to the blue channel and further find green clusters that are paired with these two. 
 Run 'Identify_Synapse_V.m' - 'Add_to_V.m' - 'Identify_Synpase_pairing.m' - 'Synapse_Divide_Add_to.m' - 'Synapse_Divide.m' - 'Synapse_Divide_G_add_to.m' - 'Synapse_divide_G.m'. 
 
+4_CTB: 
+Similar to the previous files but for CTB cluster processing. 
+
 Use 'Render_cluster.m' to render connected components as images. 
