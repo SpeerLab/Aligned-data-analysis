@@ -1,12 +1,20 @@
 # Aligned-data-analysis
-MATLAB code to extract data from aligned STORM images. 
+MATLAB scripts to extract data from aligned STORM images. 
 
 Results for the application have been published in [Cell Reports](https://www.cell.com/cell-reports/fulltext/S2211-1247(23)00096-7?_returnURL=https%3A%2F%2Flinkinghub.elsevier.com%2Fretrieve%2Fpii%2FS2211124723000967%3Fshowall%3Dtrue). 
 
-1_Soma_out: 
-Run 'Soma_Green_Storm' to filter out unspecific labeling in soma. It will also save image area with or without the soma region. 
+## Image data struction
+The scripts are designed for 3-color STORM image processing. The image stack should be aligned before the processing. 
 
-2_Synapse: 
+STORM images should be stored in 'elastic_align' folder, where super-resoltuion data is stored in 'elastic_align/storm_merged' and corresponding conventional data is stored in 'elastic_align/conv_merged'. 
+
+In this example, presynaptic data (Bassoon) is in the red channel, postsynaptic data (Homer1/2/3) is in the green channel, and vesicle pool data (VGluT2) is in the blue channel. 
+
+## 1_Soma_out: 
+* Soma_Green_Storm.m
+Filter out unspecific labeling in soma. It will also save image area with or without(neuropil) the soma region. 
+
+## 2_Synapse: 
 Run 'Identify_Synapse_R.m' and 'Identify_Synapse_G.m' to find connected components of synaptic clusters (red and green channel in STORM). 
 Run 'Add_to_G.m' and 'Add_to_R.m' to find red clusters close to green ones and vice versa. 
 Run 'Identify_Synpase_pairing.m' to find paired green and red clusters. 
