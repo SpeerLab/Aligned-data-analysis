@@ -1,6 +1,6 @@
 # Aligned-data-analysis
-MATLAB code to extract data from aligned STORM images
-
+MATLAB code to extract data from aligned STORM images. 
+Results for the application have been published in [Cell Reports](https://www.cell.com/cell-reports/fulltext/S2211-1247(23)00096-7?_returnURL=https%3A%2F%2Flinkinghub.elsevier.com%2Fretrieve%2Fpii%2FS2211124723000967%3Fshowall%3Dtrue). 
 
 1_Soma_out: 
 Run 'Soma_Green_Storm' to filter out unspecific labeling in soma. It will also save image area with or without the soma region. 
